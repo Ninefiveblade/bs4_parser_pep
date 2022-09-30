@@ -12,7 +12,10 @@ def get_response(session, url):
     try:
         response = session.get(url)
         response.encoding = 'utf-8'
-        return response
+        if response is not None:
+            return response
+        else:
+            return
     except RequestException:
         logging.exception(
             f'Возникла ошибка при загрузке страницы {url}',
