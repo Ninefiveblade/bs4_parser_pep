@@ -13,7 +13,7 @@ TAG_MESSAGE = "Не найден тег {} {}"
 
 
 def get_response(session, url):
-    """Заглушка для пайтест."""
+    """Для прохождения пайтеста."""
 
     try:
         response = session.get(url)
