@@ -46,15 +46,14 @@ def file_output(results, cli_args):
 
 
 CHOICE = {
-        ARGUMENT_PRETTY: pretty_output,
-        ARGUMENT_FILE: file_output,
-        None: default_output
-    }
+    ARGUMENT_PRETTY: pretty_output,
+    ARGUMENT_FILE: file_output,
+    None: default_output
+}
 
 
 def control_output(results, cli_args):
     """Проверка аргумента коммандной строки
     если pretty - выводим таблицу,
     если файл, сохраняем файл."""
-
     CHOICE[cli_args.output](results, cli_args)

@@ -19,18 +19,3 @@ EXPECTED_STATUS = {
     "W": ["Withdrawn"],
     "": ["Draft", "Active"],
 }
-
-
-def log_file():
-    log_dir = BASE_DIR / "logs"
-    log_dir.mkdir(exist_ok=True)
-    return log_dir / "parser.log"
-
-
-def downloads_dir():
-    """Изначально было так, но пайтест потребовал это
-    в main.py"""
-
-    downloads_dir = BASE_DIR / "downloads"
-    downloads_dir.mkdir(exist_ok=True)
-    return downloads_dir

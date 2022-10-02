@@ -12,7 +12,7 @@ from constants import (DOWNLOADS_URL, EXPECTED_STATUS, MAIN_DOC_URL, PEP,
 from exceptions import InfoNotFound
 from outputs import control_output
 from utils import find_tag, get_soup_response
-from exceptions import EmtyResults, ArgumentParserError
+from exceptions import EmtyResults, RequestConnectionError
 
 
 LOGGER_INFORMATION = (
@@ -20,6 +20,7 @@ LOGGER_INFORMATION = (
     "Ожидаемые статусы: {} "
     "{}"
 )
+MAIN_ERROR_MESSAGE = "Получены неверные результаты в results"
 
 
 def whats_new(session):
@@ -32,10 +33,16 @@ def whats_new(session):
         main_div, 'div', attrs={'class': 'toctree-wrapper'}
     ).find_all('li', attrs={'class': 'toctree-l1'}), "sections_by_python"):
         version_link = urljoin(WHATS_NEW_URL, find_tag(section, 'a')['href'])
-        soup = get_soup_response(session, version_link)
+        logging_storage = []
+        try:
+            soup = get_soup_response(session, version_link)
+        except RequestConnectionError as error:
+            logging_storage.append(f"Возникла ошибка {error}")
         h1 = find_tag(soup, 'h1').text
         dl = find_tag(soup, 'dl').text.replace('\n', ' ')
         results.append((version_link, h1, dl))
+    if logging_storage:
+        logging.error(*logging_storage)
     return results
 
 
@@ -106,24 +113,28 @@ def pep(session):
         td = item.find("td").text
         status = td[1] if len(td) > 1 else ""
         pep_link = urljoin(PEP, link)
-        soup = get_soup_response(session, pep_link)
+        try:
+            soup = get_soup_response(session, pep_link)
+        except RequestConnectionError as error:
+            logging_storage.append(f"Возникла ошибка {error}")
         status_tag = soup.find(
             "dl", class_="rfc2822 field-list simple"
         ).find(string="Status").findNext("dd").text
         if status_tag in EXPECTED_STATUS[status]:
             storage[status_tag] += 1
         else:
-            storage["undifined_status"] += 1
+            storage["Undefined_status"] += 1
             logging_storage.append(
                 LOGGER_INFORMATION.format(
                     status_tag, EXPECTED_STATUS[status], pep_link
                 )
             )
-    logging.info(*logging_storage)
+    if logging_storage:
+        logging.exception(*logging_storage)
     return (
         ("Статус", "Количество"),
         *storage.items(),
-        ("Total", sum(storage.values)),
+        ("Total", sum(storage.values())),
     )
 
 
@@ -139,11 +150,7 @@ def main():
     configure_logging()
     logging.info("Парсер запущен!")
     arg_parser = configure_argument_parser(MODE_TO_FUNCTION.keys())
-    try:
-        args = arg_parser.parse_args()
-    except ArgumentParserError:
-        logging.exception("Неверно переданы аргументы.")
-        raise
+    args = arg_parser.parse_args()
     logging.info(f"Аргументы командной строки: {args}")
     try:
         session = requests_cache.CachedSession()
@@ -151,18 +158,10 @@ def main():
             session.cache.clear()
         parser_mode = args.mode
         results = MODE_TO_FUNCTION[parser_mode](session)
-        if results is not None:
-            control_output(results, args)
-        else:
-            raise TypeError
-    except UnboundLocalError as error:
+        control_output(results, args)
+    except (UnboundLocalError, TypeError) as error:
         raise EmtyResults(
-            "Получены неверные результаты в results",
-            error
-        )
-    except TypeError as error:
-        raise EmtyResults(
-            "Получен непредвиденный тип данных: в results",
+            MAIN_ERROR_MESSAGE,
             error
         )
     logging.info("Парсер завершил работу.")

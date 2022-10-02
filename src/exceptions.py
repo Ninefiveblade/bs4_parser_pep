@@ -10,9 +10,5 @@ class EmtyResults(Exception):
     """Вызывается, когда нет результатов."""
 
 
-class ArgumentParserError(Exception):
-    """Выводим ошибку, если не переданы аргументы."""
-
-
 class RequestConnectionError(Exception):
     """Выводим ошибку, если произошла ошибка при подключении."""
