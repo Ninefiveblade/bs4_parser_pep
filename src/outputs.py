@@ -4,23 +4,9 @@ import logging
 
 from prettytable import PrettyTable
 
-from configs import ARGUMENT_CHOICES, configure_logging
-from constants import BASE_DIR, DATETIME_FORMAT
+from constants import BASE_DIR, DATETIME_FORMAT, ARGUMENT_PRETTY, ARGUMENT_FILE
 
-MESSAGE = 'Файл с результатами был сохранён: {}'
-
-
-def control_output(results, cli_args):
-    """Проверка аргумента коммандной строки
-    если pretty - выводим таблицу,
-    если файл, сохраняем файл."""
-    CHOICE = {
-        ARGUMENT_CHOICES[0]: pretty_output,
-        ARGUMENT_CHOICES[1]: file_output,
-        None: default_output
-    }
-
-    CHOICE[cli_args.output](results, cli_args)
+FILE_OUTPUT_MESSAGE = 'Файл с результатами был сохранён: {}'
 
 
 def default_output(results, cli_args):
@@ -46,7 +32,6 @@ def file_output(results, cli_args):
     """Настраиваем директории сохранения
     csv файла."""
 
-    configure_logging()
     results_dir = BASE_DIR / 'results'
     results_dir.mkdir(exist_ok=True)
     parser_mode = cli_args.mode
@@ -57,4 +42,19 @@ def file_output(results, cli_args):
     with open(file_path, 'w', encoding='utf-8') as file:
         writer = csv.writer(file, csv.unix_dialect)
         writer.writerows(results)
-    logging.info(MESSAGE.format(file_path))
+    logging.info(FILE_OUTPUT_MESSAGE.format(file_path))
+
+
+CHOICE = {
+        ARGUMENT_PRETTY: pretty_output,
+        ARGUMENT_FILE: file_output,
+        None: default_output
+    }
+
+
+def control_output(results, cli_args):
+    """Проверка аргумента коммандной строки
+    если pretty - выводим таблицу,
+    если файл, сохраняем файл."""
+
+    CHOICE[cli_args.output](results, cli_args)

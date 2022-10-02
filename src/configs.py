@@ -1,7 +1,7 @@
 import logging
 from logging.handlers import RotatingFileHandler
 
-from constants import ARGUMENT_CHOICES, GetDir
+from constants import ARGUMENT_FILE, ARGUMENT_PRETTY, log_file
 from utils import ThrowingArgumentParser
 
 LOG_FORMAT = '"%(asctime)s - [%(levelname)s] - %(message)s"'
@@ -27,7 +27,7 @@ def configure_argument_parser(available_modes):
     parser.add_argument(
         '-o',
         '--output',
-        choices=ARGUMENT_CHOICES,
+        choices=(ARGUMENT_FILE, ARGUMENT_PRETTY),
         help='Дополнительные способы вывода данных'
     )
     return parser
@@ -42,7 +42,7 @@ def configure_logging() -> None:
         level=logging.INFO,
         handlers=(
             RotatingFileHandler(
-                GetDir.log_file(),
+                log_file(),
                 maxBytes=10 ** 6,
                 backupCount=5
             ),
