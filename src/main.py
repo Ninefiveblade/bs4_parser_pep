@@ -13,6 +13,7 @@ from constants import (DOWNLOADS_URL, EXPECTED_STATUS, MAIN_DOC_URL, PEP,
 from exceptions import InfoNotFound
 from outputs import control_output
 from utils import find_tag, get_response, get_soup_object
+from exceptions import EmtyResults, ArgumentParserError
 
 
 def whats_new(session):
@@ -153,7 +154,11 @@ def main():
     configure_logging()
     logging.info("Парсер запущен!")
     arg_parser = configure_argument_parser(MODE_TO_FUNCTION.keys())
-    args = arg_parser.parse_args()
+    try:
+        args = arg_parser.parse_args()
+    except ArgumentParserError:
+        logging.exception("Неверно переданы аргументы.")
+        raise
     logging.info(f"Аргументы командной строки: {args}")
     session = requests_cache.CachedSession()
     if args.clear_cache:
@@ -163,6 +168,8 @@ def main():
     if results is not None:
         # передаём их в функцию вывода вместе с аргументами командной строки.
         control_output(results, args)
+    else:
+        raise EmtyResults(f"Получены пустые результаты {results}")
     logging.info("Парсер завершил работу.")
 
 

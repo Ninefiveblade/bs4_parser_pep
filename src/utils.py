@@ -1,7 +1,10 @@
+import argparse
+import logging
+
 from bs4 import BeautifulSoup
 from requests import RequestException
 
-from exceptions import ParserFindTagException
+from exceptions import ParserFindTagException, ArgumentParserError
 
 MESSAGE = "Возникла ошибка при загрузке страницы {}"
 TAG_MESSAGE = "Не найден тег {} {}"
@@ -16,9 +19,8 @@ def get_response(session, url):
         response.encoding = "utf-8"
         return response
     except RequestException:
-        raise RequestException(
-            MESSAGE.format(url)
-        )
+        logging.error(MESSAGE.format(url))
+        raise
 
 
 def find_tag(soup, tag, attrs=None):
@@ -34,3 +36,13 @@ def find_tag(soup, tag, attrs=None):
 
 def get_soup_object(response):
     return BeautifulSoup(response.text, features="lxml")
+
+
+class ThrowingArgumentParser(argparse.ArgumentParser):
+    """Переписываем класс, чтобы трейсить нужную ошибку."""
+
+    def error(self, message):
+        raise ArgumentParserError(
+            "Не переданы или переданы неправильно основные параметры. "
+            f"{message}"
+        )

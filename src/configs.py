@@ -1,8 +1,8 @@
-import argparse
 import logging
 from logging.handlers import RotatingFileHandler
 
 from constants import ARGUMENT_CHOICES, GetDir
+from utils import ThrowingArgumentParser
 
 LOG_FORMAT = '"%(asctime)s - [%(levelname)s] - %(message)s"'
 DT_FORMAT = '%d.%m.%Y %H:%M:%S'
@@ -12,7 +12,7 @@ def configure_argument_parser(available_modes):
     """Настройка передачи аргументов через командную
     строку."""
 
-    parser = argparse.ArgumentParser(description='Парсер документации Python')
+    parser = ThrowingArgumentParser(description='Парсер документации Python')
     parser.add_argument(
         'mode',
         choices=available_modes,
