@@ -26,15 +26,15 @@ def whats_new(session):
     """Парсим страницу с новостями."""
 
     soup = get_soup_response(session, WHATS_NEW_URL)
-    main_div = find_tag(soup, 'section', attrs={'id': 'what-s-new-in-python'})
-    results = [('Ссылка на статью', 'Заголовок', 'Редактор, Автор')]
+    main_div = find_tag(soup, "section", attrs={"id": "what-s-new-in-python"})
+    results = [("Ссылка на статью", "Заголовок", "Редактор, Автор")]
     for section in tqdm(find_tag(
-        main_div, 'div', attrs={'class': 'toctree-wrapper'}
-    ).find_all('li', attrs={'class': 'toctree-l1'}), "sections_by_python"):
-        version_link = urljoin(WHATS_NEW_URL, find_tag(section, 'a')['href'])
+        main_div, "div", attrs={"class": "toctree-wrapper"}
+    ).find_all("li", attrs={"class": "toctree-l1"}), "sections_by_python"):
+        version_link = urljoin(WHATS_NEW_URL, find_tag(section, "a")["href"])
         soup = get_soup_response(session, version_link)
-        h1 = find_tag(soup, 'h1').text
-        dl = find_tag(soup, 'dl').text.replace('\n', ' ')
+        h1 = find_tag(soup, "h1").text
+        dl = find_tag(soup, "dl").text.replace("\n", " ")
         results.append((version_link, h1, dl))
     return results
 

@@ -8,8 +8,27 @@ from exceptions import (
     ParserFindTagException, ArgumentParserError, RequestConnectionError
 )
 
-SOUP_MESSAGE = "Возникла ошибка при загрузке страницы {}"
+RESPINSE_MESSAGE = "Возникла ошибка при загрузке страницы {}"
 TAG_MESSAGE = "Не найден тег {} {}"
+
+
+def get_response(session, url):
+    """Заглушка для пайтест."""
+
+    try:
+        response = session.get(url)
+        response.encoding = "utf-8"
+        return response
+    except MissingSchema as error:
+        raise RequestConnectionError(
+            RESPINSE_MESSAGE.format(url),
+            error
+        )
+    except RequestException as error:
+        raise RequestConnectionError(
+            RESPINSE_MESSAGE.format(url),
+            error
+        )
 
 
 def get_soup_response(session, url):
@@ -22,12 +41,12 @@ def get_soup_response(session, url):
         return BeautifulSoup(response.text, features="lxml")
     except MissingSchema as error:
         raise RequestConnectionError(
-            SOUP_MESSAGE.format(url),
+            RESPINSE_MESSAGE.format(url),
             error
         )
     except RequestException as error:
         raise RequestConnectionError(
-            SOUP_MESSAGE.format(url),
+            RESPINSE_MESSAGE.format(url),
             error
         )
 
