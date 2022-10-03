@@ -7,8 +7,8 @@ BASE_DIR = Path(__file__).parent
 DATETIME_FORMAT = "%Y-%m-%d_%H-%M-%S"
 ARGUMENT_PRETTY = "pretty"
 ARGUMENT_FILE = "file"
-DOWNLOADS_URL = f"{MAIN_DOC_URL}/download.html"
-WHATS_NEW_URL = f"{MAIN_DOC_URL}/whatsnew/"
+DOWNLOADS_URL = f"{MAIN_DOC_URL}download.html"
+WHATS_NEW_URL = f"{MAIN_DOC_URL}whatsnew/"
 EXPECTED_STATUS = {
     "A": ["Active", "Accepted"],
     "D": ["Deferred"],

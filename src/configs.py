@@ -2,7 +2,8 @@ import logging
 import argparse
 from logging.handlers import RotatingFileHandler
 
-from constants import ARGUMENT_FILE, ARGUMENT_PRETTY, BASE_DIR
+from constants import ARGUMENT_FILE, ARGUMENT_PRETTY
+from utils import log_file
 
 LOG_FORMAT = '"%(asctime)s - [%(levelname)s] - %(message)s"'
 DT_FORMAT = '%d.%m.%Y %H:%M:%S'
@@ -49,18 +50,3 @@ def configure_logging() -> None:
             logging.StreamHandler()
         )
     )
-
-
-def log_file():
-    log_dir = BASE_DIR / "logs"
-    log_dir.mkdir(exist_ok=True)
-    return log_dir / "parser.log"
-
-
-def downloads_dir():
-    """Изначально было так, но пайтест потребовал это
-    в main.py"""
-
-    downloads_dir = BASE_DIR / "downloads"
-    downloads_dir.mkdir(exist_ok=True)
-    return downloads_dir

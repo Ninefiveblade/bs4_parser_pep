@@ -5,13 +5,16 @@ from requests.exceptions import MissingSchema
 from exceptions import (
     ParserFindTagException, RequestConnectionError
 )
+from constants import BASE_DIR
+
 
 RESPINSE_MESSAGE = "Возникла ошибка при загрузке страницы {}"
 TAG_MESSAGE = "Не найден тег {} {}"
 
 
 def get_response(session, url):
-    """Для прохождения пайтеста."""
+    """Описываем функцию, делающую
+    get запрос и возвращающую ответ."""
 
     try:
         response = session.get(url)
@@ -25,16 +28,31 @@ def get_response(session, url):
 
 
 def get_soup_response(session, url):
-    """Декоратор супа"""
+    """Выполняет get_response и возвращает объект супа."""
+
     return BeautifulSoup(get_response(session, url).text, features="lxml")
 
 
 def find_tag(soup, tag, attrs=None):
     """Описываем функцию-перехват
-    для несущесвующих attrs параметров
-    метода find bs4."""
+    для пустых тегов bs4."""
 
     searched_tag = soup.find(tag, attrs if attrs is not None else {})
     if searched_tag is None:
         raise ParserFindTagException(TAG_MESSAGE.format(tag, attrs))
     return searched_tag
+
+
+def log_file():
+    log_dir = BASE_DIR / "logs"
+    log_dir.mkdir(exist_ok=True)
+    return log_dir / "parser.log"
+
+
+def downloads_dir():
+    """Изначально было так, но пайтест потребовал это
+    в main.py"""
+
+    downloads_dir = BASE_DIR / "downloads"
+    downloads_dir.mkdir(exist_ok=True)
+    return downloads_dir

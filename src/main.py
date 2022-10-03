@@ -21,36 +21,39 @@ LOGGER_INFORMATION = (
     "{}"
 )
 MAIN_ERROR_MESSAGE = "Получены неверные результаты в results"
+FUNC_ERROR_MESAGE = "Возникла ошибка {}"
 
 
 def whats_new(session):
     """Парсим страницу с новостями."""
-
-    soup = get_soup_response(session, WHATS_NEW_URL)
-    main_div = find_tag(soup, 'section', attrs={'id': 'what-s-new-in-python'})
     results = [('Ссылка на статью', 'Заголовок', 'Редактор, Автор')]
-    for section in tqdm(find_tag(
-        main_div, 'div', attrs={'class': 'toctree-wrapper'}
-    ).find_all('li', attrs={'class': 'toctree-l1'}), "sections_by_python"):
-        version_link = urljoin(WHATS_NEW_URL, find_tag(section, 'a')['href'])
-        logging_storage = []
-        try:
+    logging_storage = []
+    try:
+        for section in tqdm(get_soup_response(
+            session, WHATS_NEW_URL
+        ).select("#what-s-new-in-python li.toctree-l1"), "sections_by_python"):
+            version_tag = find_tag(section, 'a')['href']
+            if bool(re.search(r"\d\.\d+.html", version_tag)):
+                version_link = urljoin(
+                    WHATS_NEW_URL,
+                    find_tag(section, 'a')['href']
+                )
             soup = get_soup_response(session, version_link)
-        except RequestConnectionError as error:
-            logging_storage.append(f"Возникла ошибка {error}")
-        h1 = find_tag(soup, 'h1').text
-        dl = find_tag(soup, 'dl').text.replace('\n', ' ')
-        results.append((version_link, h1, dl))
+            h1 = find_tag(soup, 'h1').text
+            dl = find_tag(soup, 'dl').text.replace('\n', ' ')
+            results.append((version_link, h1, dl))
+    except RequestConnectionError as error:
+        logging_storage.append(FUNC_ERROR_MESAGE.format(error))
     if logging_storage:
-        logging.error(*logging_storage)
+        for log in logging_storage:
+            logging.error(log)
     return results
 
 
 def latest_versions(session):
     """Собираем информацию о версиях Python."""
 
-    soup = get_soup_response(session, MAIN_DOC_URL)
-    for ul in tqdm(soup.find(
+    for ul in tqdm(get_soup_response(session, MAIN_DOC_URL).find(
         "div", class_="sphinxsidebarwrapper"
     ).find_all("ul"), "latest_versions"):
         if "All versions" in ul.text:
@@ -62,7 +65,7 @@ def latest_versions(session):
         raise InfoNotFound("Ничего не нашлось")
     pattern = r"Python (?P<version>\d\.\d+) \((?P<status>.*)\)"
     results = [("Ссылка на документацию", "Версия", "Статус")]
-    for ver in a_tags:
+    for ver in tqdm(a_tags, "a_tags"):
         text_match = re.search(pattern, ver.text)
         if text_match is not None:
             results.append(
@@ -80,13 +83,12 @@ def latest_versions(session):
 def download(session):
     """Загружаем со страницы загрузок."""
 
-    soup = get_soup_response(session, DOWNLOADS_URL)
-    pdf_a4_tag = find_tag(
-        find_tag(soup, "div", {"role": "main"}), "table", {"class": "docutils"}
-    ).find(
-        "a", {"href": re.compile(r".+pdf-a4\.zip$")}
+    archive_url = urljoin(
+        DOWNLOADS_URL,
+        get_soup_response(
+            session, DOWNLOADS_URL
+        ).select_one("tr:nth-child(3) a[href]")['href']
     )
-    archive_url = urljoin(DOWNLOADS_URL, pdf_a4_tag["href"])
     filename = archive_url.split("/")[-1]
     downloads_dir = BASE_DIR / "downloads"
     downloads_dir.mkdir(exist_ok=True)
@@ -102,35 +104,33 @@ def pep(session):
     и сравниваем их со статусами каждого
     в карточке."""
 
-    soup = get_soup_response(session, PEP)
-    all_peps = find_tag(
-        soup, "section", attrs={"id": "numerical-index"}
-    ).find("tbody").find_all("tr")
     storage = defaultdict(int)
     logging_storage = []
-    for item in tqdm(all_peps, "pep"):
-        link = item.find("a")["href"]
-        td = item.find("td").text
-        status = td[1] if len(td) > 1 else ""
-        pep_link = urljoin(PEP, link)
-        try:
-            soup = get_soup_response(session, pep_link)
-        except RequestConnectionError as error:
-            logging_storage.append(f"Возникла ошибка {error}")
-        status_tag = soup.find(
-            "dl", class_="rfc2822 field-list simple"
-        ).find(string="Status").findNext("dd").text
-        if status_tag in EXPECTED_STATUS[status]:
-            storage[status_tag] += 1
-        else:
-            storage["Undefined_status"] += 1
-            logging_storage.append(
-                LOGGER_INFORMATION.format(
-                    status_tag, EXPECTED_STATUS[status], pep_link
+    try:
+        for item in tqdm(get_soup_response(session, PEP).select(
+            '#numerical-index table tbody tr'
+        ), "pep"):
+            link = item.find("a")["href"]
+            td = item.find("td").text
+            status = td[1] if len(td) > 1 else ""
+            pep_link = urljoin(PEP, link)
+            status_tag = get_soup_response(session, pep_link).find(
+                "dl", class_="rfc2822 field-list simple"
+            ).find(string="Status").findNext("dd").text
+            if status_tag in EXPECTED_STATUS[status]:
+                storage[status_tag] += 1
+            else:
+                storage["Undefined_status"] += 1
+                logging_storage.append(
+                    LOGGER_INFORMATION.format(
+                        status_tag, EXPECTED_STATUS[status], pep_link
+                    )
                 )
-            )
+    except RequestConnectionError as error:
+        logging_storage.append(FUNC_ERROR_MESAGE.format(error))
     if logging_storage:
-        logging.exception(*logging_storage)
+        for log in logging_storage:
+            logging.exception(log)
     return (
         ("Статус", "Количество"),
         *storage.items(),
