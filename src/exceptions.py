@@ -12,3 +12,7 @@ class EmtyResults(Exception):
 
 class RequestConnectionError(Exception):
     """Выводим ошибку, если произошла ошибка при подключении."""
+
+
+class NotFoundTagError(Exception):
+    """Ловим ошибку, если не нашелся тег."""

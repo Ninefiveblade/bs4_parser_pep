@@ -12,7 +12,7 @@ from constants import (DOWNLOADS_URL, EXPECTED_STATUS, MAIN_DOC_URL, PEP,
 from exceptions import InfoNotFound
 from outputs import control_output
 from utils import find_tag, get_soup_response
-from exceptions import EmtyResults, RequestConnectionError
+from exceptions import EmtyResults, RequestConnectionError, NotFoundTagError
 
 
 LOGGER_INFORMATION = (
@@ -28,22 +28,24 @@ def whats_new(session):
     """Парсим страницу с новостями."""
     results = [('Ссылка на статью', 'Заголовок', 'Редактор, Автор')]
     logging_storage = []
-    try:
-        for section in tqdm(get_soup_response(
-            session, WHATS_NEW_URL
-        ).select("#what-s-new-in-python li.toctree-l1"), "sections_by_python"):
-            version_tag = find_tag(section, 'a')['href']
-            if bool(re.search(r"\d\.\d+.html", version_tag)):
-                version_link = urljoin(
-                    WHATS_NEW_URL,
-                    find_tag(section, 'a')['href']
-                )
+    for section in tqdm(get_soup_response(
+        session, WHATS_NEW_URL
+    ).select("#what-s-new-in-python li.toctree-l1"), "sections_by_python"):
+        version_tag = find_tag(section, 'a')['href']
+        if bool(re.search(r"\d\.\d+.html", version_tag)):
+            version_link = urljoin(
+                WHATS_NEW_URL,
+                find_tag(section, 'a')['href']
+            )
+        try:
             soup = get_soup_response(session, version_link)
             h1 = find_tag(soup, 'h1').text
             dl = find_tag(soup, 'dl').text.replace('\n', ' ')
             results.append((version_link, h1, dl))
-    except RequestConnectionError as error:
-        logging_storage.append(FUNC_ERROR_MESAGE.format(error))
+        except NotFoundTagError as error:
+            logging_storage.append(
+                FUNC_ERROR_MESAGE.format(error)
+            )
     if logging_storage:
         for log in logging_storage:
             logging.error(log)
@@ -106,14 +108,14 @@ def pep(session):
 
     storage = defaultdict(int)
     logging_storage = []
-    try:
-        for item in tqdm(get_soup_response(session, PEP).select(
-            '#numerical-index table tbody tr'
-        ), "pep"):
-            link = item.find("a")["href"]
-            td = item.find("td").text
-            status = td[1] if len(td) > 1 else ""
-            pep_link = urljoin(PEP, link)
+    for item in tqdm(get_soup_response(session, PEP).select(
+        '#numerical-index table tbody tr'
+    ), "pep"):
+        link = item.find("a")["href"]
+        td = item.find("td").text
+        status = td[1] if len(td) > 1 else ""
+        pep_link = urljoin(PEP, link)
+        try:
             status_tag = get_soup_response(session, pep_link).find(
                 "dl", class_="rfc2822 field-list simple"
             ).find(string="Status").findNext("dd").text
@@ -126,8 +128,10 @@ def pep(session):
                         status_tag, EXPECTED_STATUS[status], pep_link
                     )
                 )
-    except RequestConnectionError as error:
-        logging_storage.append(FUNC_ERROR_MESAGE.format(error))
+        except NotFoundTagError as error:
+            logging_storage.append(
+                FUNC_ERROR_MESAGE.format(error)
+            )
     if logging_storage:
         for log in logging_storage:
             logging.exception(log)
@@ -159,7 +163,7 @@ def main():
         parser_mode = args.mode
         results = MODE_TO_FUNCTION[parser_mode](session)
         control_output(results, args)
-    except (UnboundLocalError, TypeError) as error:
+    except (UnboundLocalError, TypeError, RequestConnectionError) as error:
         raise EmtyResults(
             MAIN_ERROR_MESSAGE,
             error
